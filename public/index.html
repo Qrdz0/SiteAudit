@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiteAudit</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=ibm-plex-sans:400,500|ibm-plex-mono:400,500" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1012; --raised: #16171a; --raised-2: #1c1d21;
+    --line: rgba(232, 234, 237, .08);
+    --text: #e8eaed; --text-2: #a2a6ad; --muted: #6b6f76;
+    --accent: #e3b341;
+    --fail: #e5534b; --pass: #57ab5a;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 400 15px/1.5 'IBM Plex Sans', system-ui, sans-serif; min-height: 100vh; }
+  main { max-width: 720px; margin: 0 auto; padding: 64px 24px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 40px; }
+  .logo { font-weight: 500; font-size: 16px; }
+  .ver { font: 400 12px var(--mono); color: var(--muted); }
+  h1 { font-size: 28px; font-weight: 500; line-height: 1.25; margin-bottom: 8px; }
+  .sub { color: var(--text-2); margin-bottom: 32px; }
+
+  form { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; height: 44px; padding: 0 16px; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; color: var(--text); font: 400 14px var(--mono); transition: border-color .15s var(--ease); }
+  input::placeholder { color: var(--muted); }
+  input:focus { outline: none; border-color: var(--accent); }
+  button { height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: var(--text); color: var(--bg); font: 500 14px 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer; transition: opacity .15s var(--ease), transform .1s var(--ease); }
+  button:hover { opacity: .9; } button:active { transform: scale(.98); }
+  button:disabled { opacity: .5; cursor: wait; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .report { margin-top: 40px; background: var(--raised); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .report[hidden] { display: none; }
+  .meta { display: flex; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); font: 400 12px var(--mono); color: var(--muted); }
+  .meta .target { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score { color: var(--text); }
+  ul { list-style: none; padding: 0; }
+  li { display: grid; grid-template-columns: 20px 1fr auto; gap: 12px; align-items: start; padding: 16px 20px; }
+  li + li { border-top: 1px solid var(--line); }
+  li svg { margin-top: 2px; }
+  .name { font-weight: 500; }
+  .detail { color: var(--text-2); font-size: 14px; }
+  .status { font: 500 12px var(--mono); padding-top: 3px; }
+  .fail { color: var(--fail); } .pass { color: var(--pass); }
+  .error { margin-top: 16px; font: 400 13px var(--mono); color: var(--fail); }
+  footer { margin-top: 24px; font: 400 12px var(--mono); color: var(--muted); }
+
+  .actions { margin-top: 16px; display: flex; justify-content: flex-end; }
+  .actions[hidden], .print-only { display: none; }
+  .secondary { background: var(--raised-2); color: var(--text); border: 1px solid var(--line); }
+
+  @media print {
+    @page { margin: 20mm; }
+    :root { --text: #000; --text-2: #333; --muted: #555; --line: #ccc; --fail: #b00020; --pass: #1b6e20; }
+    body { background: #fff; color: #000; min-height: 0; }
+    main { max-width: none; padding: 0; }
+    form, .actions, .error, header.screen, footer.screen { display: none !important; }
+    .report { background: #fff; border: 1px solid #ccc; margin-top: 24px; break-inside: avoid; }
+    .print-only { display: block; }
+    .print-header { font-size: 18px; font-weight: 500; padding-bottom: 12px; margin-bottom: 24px; border-bottom: 2px solid #000; }
+    .print-footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 12px; color: #333; }
+    h1 { font-size: 22px; }
+  }
+  @media (max-width: 520px) { form { flex-direction: column; } main { padding: 40px 16px; } }
+</style>
+</head>
+<body>
+<main>
+  <p class="print-only print-header">VibeCode Labs - Website Compliance Report</p>
+  <header class="screen"><span class="logo">VibeCode Labs</span><span class="ver">v0.1</span></header>
+  <h1>Check a website for compliance risks</h1>
+  <p class="sub">Find out if your website is compliant with EU privacy laws.</p>
+
+  <form id="f">
+    <input id="url" type="text" inputmode="url" placeholder="bakkerijdevries.nl" aria-label="Website URL" required autocomplete="off">
+    <button id="go">Scan website</button>
+  </form>
+  <p class="error" id="err" role="alert"></p>
+
+  <section class="report" id="report" hidden aria-live="polite">
+    <div class="meta"><span class="target" id="target"></span><span class="score" id="score"></span></div>
+    <div class="meta print-only">Scanned <span id="when"></span></div>
+    <ul id="list"></ul>
+  </section>
+  <div class="actions" id="actions" hidden><button class="secondary" id="pdf" type="button">Download PDF report</button></div>
+  <p class="print-only print-footer">Generated on <span id="gen"></span> by VibeCode Labs. Contact: hello@vibecodelabs.be</p>
+  <footer class="screen">Checks the fully rendered homepage</footer>
+</main>
+
+<script>
+const ICON = {
+  fail: '<svg class="fail" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+  pass: '<svg class="pass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>'
+};
+const CHECKS = [
+  ['gdprRisk', 'GDPR', 'Loads Google Fonts from Google servers, which shares visitor IPs', 'No Google Fonts requests found'],
+  ['missingPrivacy', 'Legal pages', 'No link to a privacy policy or terms of service', 'Privacy policy or terms link found'],
+  ['missingViewport', 'Mobile', 'No viewport meta tag, the page will render zoomed out on phones', 'Viewport meta tag present'],
+];
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+$('f').onsubmit = async e => {
+  e.preventDefault();
+  $('go').disabled = true; $('go').textContent = 'Scanning';
+  $('err').textContent = '';
+  try {
+    const r = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: $('url').value }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Scan failed');
+    const fails = CHECKS.filter(([k]) => d[k]).length;
+    $('target').textContent = d.url;
+    $('score').textContent = fails ? `${fails} of 3 at risk` : '3 of 3 passed';
+    $('list').innerHTML = CHECKS.map(([k, name, bad, good]) => {
+      const risk = d[k];
+      return `<li>${risk ? ICON.fail : ICON.pass}<div><div class="name">${name}</div><div class="detail">${esc(risk ? bad : good)}</div></div><span class="status ${risk ? 'fail' : 'pass'}">${risk ? 'Risk' : 'Pass'}</span></li>`;
+    }).join('');
+    const now = new Date();
+    $('when').textContent = now.toLocaleString();
+    $('gen').textContent = now.toLocaleDateString();
+    $('report').hidden = false;
+    $('actions').hidden = false;
+  } catch (e) {
+    $('err').textContent = e.message;
+  } finally {
+    $('go').disabled = false; $('go').textContent = 'Scan website';
+  }
+};
+$('pdf').onclick = () => window.print();
+</script>
+</body>
+</html>
