@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "siteaudit", "runtimeExecutable": "node", "runtimeArgs": ["C:/Users/qrdz/Downloads/qrdz vibecode/SiteAudit/server.js"], "port": 3000 }
+  ]
+}
